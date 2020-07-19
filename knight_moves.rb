@@ -22,16 +22,18 @@ class Knight #tree
     def initialize(starting_position = [0, 0], destination)
         @root = Square.new(starting_position)
         @destination = destination
-        @adjacency_list = []
+        @all_squares_data = []
     end
 
     ### FIND THE BASE TO STOP THE RECURSION AND FINISH THE TREE ###
     def create_moves_tree(root = @root)
+        @all_squares_data << root.data
         root.children = move_options(root)
-        @adjacency_list << root
-        @adjacency_list << root.children
+
         root.children.each do |child|
             child.parent = root
+            if @all_squares_data.include?(child.data)
+                next
             elsif child.data == @destination
                 return
             else
