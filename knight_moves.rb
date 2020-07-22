@@ -37,12 +37,13 @@ end
 
 class Square #node
     include KnightMoveable
-
+    attr_accessor :distance
     attr_reader :data, :adjacent_squares
     
     def initialize(data)
         @data = data 
         @adjacent_squares = []
+        @distance = 0
     end
 
     def add_adjacent_squares
@@ -66,7 +67,6 @@ class Square #node
         return list
     end
 end
-
 
 class ChessBoardGraph
     attr_reader :squares_list
@@ -93,6 +93,40 @@ class ChessBoardGraph
         return @squares_list[data]
     end
 
+    def level_order_search(starting_square_data, target_square_data)
+        root = @squares_list[starting_square_data]
+        visited = []
+        to_visit = []
+
+        visited << root
+        to_visit << root
+
+        while !to_visit.empty?
+            current = to_visit.shift #remove and visit the first node in the queue
+            break if current.data == target_square_data
+
+            #if it's not the right node, look at its adjacent nodes and add each one to the queue & visited
+            current.adjacent_squares.each do |square|
+                if visited.map { |x| x.data}.include?(square)
+                    next
+                else
+                    visited << square
+                    to_visit << square
+
+                    if current == root
+                        square.distance = 1
+                    else
+                        unless square.distance != 0 #unless the distance has already been assigned
+                            square.distance = current.distance + 1
+                        end
+                    end
+                end
+            end
+        end
+        puts current.data.to_s
+        puts current.distance
+    end
+
 end
 
 start = Square.new([0,0])
@@ -100,7 +134,8 @@ start.add_adjacent_squares
 
 graph = ChessBoardGraph.new
 graph.build_graph(start)
-puts graph.squares_list.length
+graph.level_order_search([3,3],[4,3])
+
 
     
 
