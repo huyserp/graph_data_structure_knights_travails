@@ -39,15 +39,18 @@ class Square #node
     include KnightMoveable
     attr_accessor :distance
     attr_reader :data, :adjacent_squares
+
+    @@number_of_squares = 0
     
     def initialize(data)
         @data = data 
         @adjacent_squares = []
         @distance = 0
+        @@number_of_squares += 1
     end
 
-    def add_adjacent_squares
-        @adjacent_squares = move_options(self.data)
+    def add_edge(adjacent_square)
+        @adjacent_squares << adjacent_square
     end
 
     def move_options(root)
@@ -62,8 +65,6 @@ class Square #node
         end
         #remove any moves generated that take the knight off the chess board
         list.select! { |position| (0..7).include?(position[0]) && (0..7).include?(position[1]) }
-        #make Squares (nodes) for all locations that can be moved too from the root location, set the coordinate as its data attribute
-        list.map! { |element| Square.new(element) }
         return list
     end
 end
@@ -79,22 +80,38 @@ class ChessBoardGraph
         @squares_list[square.data] = square #key is data for node, value for key is the node itself
     end
 
+    def add_edge(square1, square2)
+        @squares_list[square1.data].add_edge(@squares_list[square2.data])
+        @squares_list[square2.data].add_edge(@squares_list[square1.data])
+    end
+####################################################################################
     def build_graph(root)
-        return if @squares_list.has_key?(root.data)
-        add_square(root)
-        
-        root.adjacent_squares.each do |adjacent|
-            adjacent.add_adjacent_squares
-            build_graph(adjacent)
+        return if @squares_list.has_key?(root)
+        options = root.move_options(root.data)
+        add_square(root) if !@squares_list.include?(root)
+        options.each do |adjacent|
+            if @squares_list.has_key?(adjacent) && root.adjacent_squares.include?(adjacent)
+                next
+            elsif @squares_list.has_key?(adjacent) && !root.adjacent_squares.include?(adjacent)
+                    add_edge(root, @squares_list[adjacent])
+            else
+                square = Square.new(adjacent)
+                add_square(square)
+                add_edge(root, square)
+            end
+            build_graph(@squares_list[adjacent])
         end
     end
-
+#####################################################################################
     def find(data)
         return @squares_list[data]
     end
 
-    def level_order_search(starting_square_data, target_square_data)
+    def knight_moves(starting_square_data, target_square_data)
         root = @squares_list[starting_square_data]
+        target = @squares_list[target_square_data]
+        destination = nil
+        binding.pry
         visited = []
         to_visit = []
 
@@ -103,38 +120,40 @@ class ChessBoardGraph
 
         while !to_visit.empty?
             current = to_visit.shift #remove and visit the first node in the queue
-            break if current.data == target_square_data
-
+            binding.pry
+            if current == target
+                destination = current
+                break
+            else
             #if it's not the right node, look at its adjacent nodes and add each one to the queue & visited
-            current.adjacent_squares.each do |square|
-                if visited.map { |x| x.data}.include?(square)
-                    next
-                else
-                    visited << square
-                    to_visit << square
-
-                    if current == root
-                        square.distance = 1
+                current.adjacent_squares.each do |square|
+                    if visited.include?(square)
+                        next
                     else
-                        unless square.distance != 0 #unless the distance has already been assigned
-                            square.distance = current.distance + 1
+                        visited << square
+                        to_visit << square
+
+                        if current == root
+                            square.distance = 1
+                        else
+                            unless square.distance != 0 #unless the distance has already been assigned
+                                square.distance = current.distance + 1
+                            end
                         end
                     end
                 end
             end
         end
-        puts current.data.to_s
-        puts current.distance
+        puts destination.data.to_s
+        puts destination.distance
     end
 
 end
 
 start = Square.new([0,0])
-start.add_adjacent_squares
-
 graph = ChessBoardGraph.new
 graph.build_graph(start)
-graph.level_order_search([3,3],[4,3])
+# graph.knight_moves([3,3],[4,3])
 
 
     
