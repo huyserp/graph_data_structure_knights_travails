@@ -67,6 +67,15 @@ class Square #node
         list.select! { |position| (0..7).include?(position[0]) && (0..7).include?(position[1]) }
         return list
     end
+
+    def self.number_of_squares
+        puts @@number_of_squares
+    end
+
+    def to_s
+        puts "data: #{self.data}, adjacent_squares: #{self.adjacent_squares.map { |x| x.data} }, distance: #{self.distance}"
+    end
+
 end
 
 class ChessBoardGraph
@@ -74,33 +83,37 @@ class ChessBoardGraph
 
     def initialize
         @squares_list = {}
+        build_graph
     end
 
     def add_square(square) #argument is node
         @squares_list[square.data] = square #key is data for node, value for key is the node itself
     end
 
-    def add_edge(square1, square2)
-        @squares_list[square1.data].add_edge(@squares_list[square2.data])
-        @squares_list[square2.data].add_edge(@squares_list[square1.data])
-    end
+    # def add_edge(square1, square2)
+    #     return if square1.adjacent_squares.include?(square2) || square2.adjacent_squares.include?(square1)
+    #     @squares_list[square1.data].add_edge(@squares_list[square2.data])
+    #     @squares_list[square2.data].add_edge(@squares_list[square1.data])
+    # end
 ####################################################################################
-    def build_graph(root)
-        return if @squares_list.has_key?(root)
-        options = root.move_options(root.data)
-        add_square(root) if !@squares_list.include?(root)
-        options.each do |adjacent|
-            if @squares_list.has_key?(adjacent) && root.adjacent_squares.include?(adjacent)
-                next
-            elsif @squares_list.has_key?(adjacent) && !root.adjacent_squares.include?(adjacent)
-                    add_edge(root, @squares_list[adjacent])
-            else
-                square = Square.new(adjacent)
-                add_square(square)
-                add_edge(root, square)
+    def build_graph
+        data_list = []
+        for x in 0..7 do 
+            for y in 0..7 do
+                data_list << [x, y]
             end
-            build_graph(@squares_list[adjacent])
         end
+
+        data_list.each { |data| add_square(Square.new(data)) }
+
+        @squares_list.each do |key, value|
+            options = value.move_options(key)
+
+            options.each do |move|
+                value.add_edge(@squares_list[move])
+            end
+        end
+        @squares_list
     end
 #####################################################################################
     def find(data)
@@ -150,9 +163,14 @@ class ChessBoardGraph
 
 end
 
-start = Square.new([0,0])
+# start = Square.new([0,0])
 graph = ChessBoardGraph.new
-graph.build_graph(start)
+puts graph.squares_list.length
+Square.number_of_squares
+graph.squares_list.values.each do |square|
+    puts square.to_s
+end
+
 # graph.knight_moves([3,3],[4,3])
 
 
