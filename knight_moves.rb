@@ -37,7 +37,7 @@ end
 
 class Square #node
     include KnightMoveable
-    attr_accessor :distance
+    attr_accessor :distance, :previous_square
     attr_reader :data, :adjacent_squares
 
     @@number_of_squares = 0
@@ -46,6 +46,7 @@ class Square #node
         @data = data 
         @adjacent_squares = []
         @distance = 0
+        @previous_square = nil
         @@number_of_squares += 1
     end
 
@@ -87,25 +88,21 @@ class ChessBoardGraph
     end
 
     def add_square(square) #argument is node
-        @squares_list[square.data] = square #key is data for node, value for key is the node itself
+        @squares_list[square.data] = square #key is data for node, value is the node itself
     end
 
-    # def add_edge(square1, square2)
-    #     return if square1.adjacent_squares.include?(square2) || square2.adjacent_squares.include?(square1)
-    #     @squares_list[square1.data].add_edge(@squares_list[square2.data])
-    #     @squares_list[square2.data].add_edge(@squares_list[square1.data])
-    # end
-####################################################################################
     def build_graph
+        # list of all data coordinates on a chessboard
         data_list = []
         for x in 0..7 do 
             for y in 0..7 do
                 data_list << [x, y]
             end
         end
-
+        # make Squares of each data coordinate and add them to the squares_list (Adjacency list)
         data_list.each { |data| add_square(Square.new(data)) }
 
+        # populate each Square's adjacent_squares list with the respective legal chess moves available for each
         @squares_list.each do |key, value|
             options = value.move_options(key)
 
@@ -115,25 +112,34 @@ class ChessBoardGraph
         end
         @squares_list
     end
-#####################################################################################
-    def find(data)
-        return @squares_list[data]
+
+    def squares_list_to_s #easy to read adjacency list
+        @squares_list.values.each do |square|
+            puts square.to_s
+        end
     end
 
-    def knight_moves(starting_square_data, target_square_data)
-        root = @squares_list[starting_square_data]
-        target = @squares_list[target_square_data]
+    def knight_moves(start_data, target_data)
+        #clear each Square's @distance and previous_square before each search, as the starting and ending points can change
+        @squares_list.values.each do |x| 
+            x.distance = nil 
+            x.previous_square = nil
+        end
+    
+        start = @squares_list[start_data]
+        target = @squares_list[target_data]
+
         destination = nil
-        binding.pry
+        start.distance = 0
+        
         visited = []
         to_visit = []
 
-        visited << root
-        to_visit << root
+        visited << start
+        to_visit << start
 
         while !to_visit.empty?
             current = to_visit.shift #remove and visit the first node in the queue
-            binding.pry
             if current == target
                 destination = current
                 break
@@ -146,179 +152,36 @@ class ChessBoardGraph
                         visited << square
                         to_visit << square
 
-                        if current == root
+                        if current == start
                             square.distance = 1
+                            square.previous_square = current
                         else
-                            unless square.distance != 0 #unless the distance has already been assigned
+                            unless square.distance != nil && square.previous_square != nil #unless the square has already been traversed
                                 square.distance = current.distance + 1
+                                square.previous_square = current
                             end
                         end
                     end
                 end
             end
         end
-        puts destination.data.to_s
-        puts destination.distance
+        # Trace back the path taken
+        path = []
+        square_before = destination
+        until square_before.previous_square == nil
+            path.unshift(square_before.data)
+            square_before = square_before.previous_square
+        end
+        # Print out results
+        path.unshift(square_before.data)
+        puts "You made it in #{destination.distance} moves! Here is your path:"
+        path.each { |squares| puts squares.to_s }
     end
-
 end
 
-# start = Square.new([0,0])
 graph = ChessBoardGraph.new
-puts graph.squares_list.length
-Square.number_of_squares
-graph.squares_list.values.each do |square|
-    puts square.to_s
-end
-
-# graph.knight_moves([3,3],[4,3])
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# class Square #node
-#     attr_accessor :data, :children, :parents
-    
-#     @@square_count = 0
-#     def initialize(board_position)
-#         @data = board_position
-#         @parents = []
-#         @children = []
-#         @@square_count += 1
-#     end
-
-#     def self.number_of_squares
-#         @@square_count
-#     end
-# end
-
-# class Knight #tree
-#     attr_accessor :adjacency_list, :root, :poi
-
-#     def initialize(starting_position = [0, 0], destination)
-#         @root = Square.new(starting_position)
-#         @destination = destination
-#         @all_squares_data = [] #List to maintain no repeats
-#         @poi = nil #Point Of Interest
-#     end
-
-
-#     def create_moves_tree(root = @root)
-#         @all_squares_data << root.data #add the current root.data to the list of total move options, this is to manage repeats
-#         root.children = move_options(root) #set all legal moves from the given root as child nodes.
-
-#         #loop through the given children of the root, set the given root as each childs parent to allow travel back up the tree
-#         root.children.each do |child|
-#             child.parents << root
-#             @poi = child if child.data == @destination
-#             if @all_squares_data.include?(child.data)
-#                 next #if the child is in this list, we've aready made a subtree for it (as you can get to a square from more than one root location)
-#             else
-#                 create_moves_tree(child)
-#             end
-#         end
-#     end
-    
-#     def display_path
-#         moves = make_path
-#         moves << @poi.data #tack your target square on the end
-#         puts "You made it in #{moves.length - 1} moves! Here's your path:"
-#         moves.each do |square|
-#             puts square.to_s
-#         end
-#     end
-
-#     def make_path(position = @poi, path = [])
-#         return if position.parents.include?(@root)
-#         path.unshift(position.parents.data)
-#         position = position.parents
-#         make_path(position, path)
-#         return path
-#     end
-    
-#     def move_options(root)
-#         moves = [
-#             move_forward_long_right(root), move_forward_long_left(root), move_forward_short_right(root), move_forward_short_left(root),
-#             move_back_long_right(root), move_back_long_left(root), move_back_short_right(root), move_back_short_left(root)
-#         ]
-#         list = []
-#         #generate all possible moves from the given location of the Knight (root)
-#         moves.each do |move|
-#             list << move
-#         end
-#         #remove any moves generated that take the knight off the chess board
-#         list.select! { |position| (0..7).include?(position[0]) && (0..7).include?(position[1]) }
-#         #make Squares (nodes) for all locations that can be moved too from the root location, set the coordinate as its data attribute
-#         list.map! { |element| Square.new(element) }
-#         return list
-#     end
-
-#     #All possible legal moves for a knight chess piece.  These can include moves off the board - off board
-#     #moves are removed before creating the node square in #move_options
-#     def move_forward_long_right(root)
-#         square = [root.data[0] + 2, root.data[1] + 1]
-#     end
-    
-#     def move_forward_long_left(root)
-#         square = [root.data[0] + 2, root.data[1] - 1]
-#     end
-
-#     def move_forward_short_right(root)
-#         square = [root.data[0] + 1, root.data[1] + 2]
-#     end
-
-#     def move_forward_short_left(root)
-#         square = [root.data[0] + 1, root.data[1] - 2]
-#     end
-
-#     def move_back_long_right(root)
-#         square = [root.data[0] - 2, root.data[1] + 1]
-#     end
-
-#     def move_back_long_left(root)
-#         square = [root.data[0] - 2, root.data[1] - 1]
-#     end
-
-#     def move_back_short_right(root)
-#         square = [root.data[0] - 1, root.data[1] + 2]
-#     end 
-
-#     def move_back_short_left(root)
-#         square = [root.data[0] - 1, root.data[1] - 2]
-#     end
-# end
-
-# def knight_moves(start, finish)
-#     k = Knight.new(start, finish)
-#     k.create_moves_tree
-#     k.display_path
-# end
-
-# knight_moves([0,0], [3,3])
-# knight_moves([3,3], [0,0])
-# knight_moves([3,3], [4,3])
+graph.knight_moves([3,3],[4,3])
+graph.knight_moves([0,0],[3,3])
+graph.knight_moves([3,3],[0,0])
+graph.knight_moves([0,0],[7,7])
+graph.knight_moves([0,0],[2,1])
